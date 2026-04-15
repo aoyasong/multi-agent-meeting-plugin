@@ -9,10 +9,12 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 // 会议生命周期工具
 import { createMeetingCreateTool } from "./tools/meeting-create.js";
+import { createMeetingStartReadinessTool } from "./tools/meeting-start-readiness.js";
 import { createMeetingStartTool } from "./tools/meeting-start.js";
 import { createMeetingEndTool } from "./tools/meeting-end.js";
 import { createMeetingGetTool } from "./tools/meeting-get.js";
 import { createMeetingListTool } from "./tools/meeting-list.js";
+import { createAgentListAvailableTool } from "./tools/agent-list-available.js";
 
 // 议程管理工具
 import {
@@ -81,8 +83,9 @@ export default definePluginEntry({
     // 当前插件工具返回结构沿用既有实现；通过窄封装兼容 SDK 注册签名。
     const registerTool = (tool: unknown) => api.registerTool(tool as never);
 
-    // 会议生命周期工具 (5)
+    // 会议生命周期工具 (6)
     registerTool(createMeetingCreateTool(api));
+    registerTool(createMeetingStartReadinessTool(api));
     registerTool(createMeetingStartTool(api));
     registerTool(createMeetingEndTool(api));
     registerTool(createMeetingGetTool(api));
@@ -127,13 +130,16 @@ export default definePluginEntry({
     registerTool(createMeetingListTasksTool(api));
     registerTool(createMeetingUpdateTaskStatusTool(api));
 
+    // Agent 发现工具 (1)
+    registerTool(createAgentListAvailableTool(api));
+
     // 注册自定义命令
     const commands = createMeetingCommands(api);
     for (const command of commands) {
       api.registerCommand(command);
     }
 
-    api.logger.info("Meeting plugin registered with 32 tools and 5 commands");
+    api.logger.info("Meeting plugin registered with 34 tools and 5 commands");
   },
 });
 

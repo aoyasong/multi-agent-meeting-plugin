@@ -49,7 +49,7 @@ describe('Runtime load smoke (dist)', () => {
 
     pluginEntry.register(api);
 
-    expect(registerTool).toHaveBeenCalledTimes(32);
+    expect(registerTool).toHaveBeenCalledTimes(34);
     expect(registerCommand).toHaveBeenCalledTimes(5);
   });
 
@@ -74,7 +74,10 @@ describe('Runtime load smoke (dist)', () => {
       purpose: '验证dist可执行',
       type: 'brainstorm',
       expected_duration: 30,
-      participants: [{ agent_id: 'agent-release', role: 'participant' }],
+      participants: [
+        { agent_id: 'agent-release', role: 'participant' },
+        { agent_id: 'agent-release-2', role: 'participant' },
+      ],
     });
     const parsed = JSON.parse(result.content[0]?.text ?? '{}') as { meeting_id?: string; status?: string };
 

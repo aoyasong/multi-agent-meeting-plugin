@@ -44,7 +44,7 @@ export const MeetingCreateToolSchema = Type.Object({
     ], { description: '角色: host, participant, observer' }),
   }), { 
     description: '参与者列表',
-    minItems: 1 
+    minItems: 2 
   }),
   materials: Type.Optional(Type.Array(Type.String(), { 
     description: '关联材料（可选）' 
@@ -79,6 +79,16 @@ export function createMeetingCreateTool(_api: OpenClawPluginApi) {
         const expectedDuration = rawParams.expected_duration as number;
         const participantsInput = rawParams.participants as ParticipantInput[];
         const materials = rawParams.materials as string[] | undefined;
+
+        if (!Array.isArray(participantsInput) || participantsInput.length < 2) {
+          return jsonResult({
+            error: true,
+            error_code: 'INSUFFICIENT_PARTICIPANTS',
+            required_action: '至少提供 2 个参会 Agent',
+            hint: '建议包含 1 名 host 与至少 1 名 participant',
+            message: 'participants must include at least 2 agents',
+          });
+        }
         
         // 生成会议ID
         const meetingId = generateMeetingId();

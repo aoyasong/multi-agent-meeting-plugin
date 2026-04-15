@@ -40,6 +40,9 @@ export function createMeetingStartTool(_api: OpenClawPluginApi) {
         if (meeting.status !== 'created') {
           return jsonResult({
             error: true,
+            error_code: 'INVALID_MEETING_STATUS',
+            required_action: '确保会议处于 created 状态后再启动',
+            hint: '可先调用 meeting_start_readiness 查看阻塞项',
             message: `Cannot start meeting with status: ${meeting.status}`,
             meeting_id: meetingId,
             current_status: meeting.status,
@@ -49,9 +52,13 @@ export function createMeetingStartTool(_api: OpenClawPluginApi) {
         if (!meeting.metadata.agenda_confirmed) {
           return jsonResult({
             error: true,
+            error_code: 'AGENDA_NOT_CONFIRMED',
+            required_action: '调用 agenda_confirm 并确认成功后再执行 meeting_start',
+            hint: '若确认后修改过议程，需要再次 agenda_confirm',
             message: 'Agenda must be confirmed before meeting_start',
             meeting_id: meetingId,
             agenda_confirmed: false,
+            agenda_confirmed_at: meeting.metadata.agenda_confirmed_at ?? null,
           });
         }
         
@@ -99,6 +106,9 @@ export function createMeetingStartTool(_api: OpenClawPluginApi) {
         const message = error instanceof Error ? error.message : 'Unknown error';
         return jsonResult({
           error: true,
+          error_code: 'MEETING_START_FAILED',
+          required_action: '检查会议数据和启动前条件后重试',
+          hint: '可先调用 meeting_start_readiness 进行预检',
           message: `Failed to start meeting: ${message}`,
         });
       }

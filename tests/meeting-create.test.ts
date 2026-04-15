@@ -79,6 +79,7 @@ describe('meeting_create tool', () => {
       expected_duration: 45,
       participants: [
         { agent_id: 'tech-lead', role: 'host' as const },
+        { agent_id: 'arch-agent', role: 'participant' as const },
       ],
     };
 

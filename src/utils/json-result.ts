@@ -20,6 +20,18 @@ export interface ToolResult {
 }
 
 /**
+ * 标准化错误载荷
+ */
+export interface ToolErrorPayload {
+  error: true;
+  message: string;
+  error_code?: string;
+  required_action?: string;
+  hint?: string;
+  [key: string]: unknown;
+}
+
+/**
  * 将结果包装为OpenClaw工具返回格式
  * 
  * @param data - 要返回的数据
@@ -32,14 +44,52 @@ export interface ToolResult {
  * ```
  */
 export function jsonResult(data: unknown): ToolResult {
+  let output = data;
+  if (
+    typeof data === 'object' &&
+    data !== null &&
+    'error' in data &&
+    (data as Record<string, unknown>).error === true
+  ) {
+    const raw = data as Record<string, unknown>;
+    output = {
+      error: true,
+      message: String(raw.message ?? 'Unknown error'),
+      error_code: String(raw.error_code ?? 'UNKNOWN_ERROR'),
+      required_action: String(raw.required_action ?? 'CHECK_INPUT_AND_RETRY'),
+      hint: String(raw.hint ?? '请检查参数与执行顺序后重试'),
+      ...raw,
+    } satisfies ToolErrorPayload;
+  }
+
   return {
     content: [
       {
         type: 'text',
-        text: JSON.stringify(data, null, 2),
+        text: JSON.stringify(output, null, 2),
       },
     ],
   };
+}
+
+/**
+ * 构造标准化错误响应
+ */
+export function toolError(
+  message: string,
+  errorCode: string,
+  requiredAction: string,
+  hint: string,
+  extra?: Record<string, unknown>
+): ToolResult {
+  return jsonResult({
+    error: true,
+    message,
+    error_code: errorCode,
+    required_action: requiredAction,
+    hint,
+    ...(extra ?? {}),
+  });
 }
 
 /**
@@ -67,22 +117,13 @@ export function textResult(text: string): ToolResult {
  * @returns OpenClaw工具结果格式（包含错误信息）
  */
 export function errorResult(message: string, details?: unknown): ToolResult {
-  return {
-    content: [
-      {
-        type: 'text',
-        text: JSON.stringify(
-          {
-            error: true,
-            message,
-            details,
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
+  return toolError(
+    message,
+    'UNKNOWN_ERROR',
+    'CHECK_INPUT_AND_RETRY',
+    '请检查参数与执行顺序后重试',
+    { details }
+  );
 }
 
 /**

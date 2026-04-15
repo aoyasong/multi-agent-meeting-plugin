@@ -6,6 +6,7 @@
   "contracts": {
     "tools": [
       "meeting_create",
+      "meeting_start_readiness",
       "meeting_start",
       "meeting_end",
       "meeting_get",
@@ -36,7 +37,8 @@
       "meeting_record_task_result",
       "meeting_get_task",
       "meeting_list_tasks",
-      "meeting_update_task_status"
+      "meeting_update_task_status",
+      "agent_list_available"
     ]
   },
   "configSchema": {

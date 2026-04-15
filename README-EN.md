@@ -11,14 +11,15 @@ Current plugin identity:
 
 - Plugin ID: `multi-agent-meeting-plugin`
 - Plugin Name: `Multi-Agent Meeting Plugin`
-- Tools: `32`
+- Tools: `34`
 - Commands: `5`
 
 ## 2. Capability Overview
 
-### 2.1 Meeting Lifecycle (5)
+### 2.1 Meeting Lifecycle (6)
 
 - `meeting_create`
+- `meeting_start_readiness`
 - `meeting_start`
 - `meeting_end`
 - `meeting_get`
@@ -69,7 +70,11 @@ Current plugin identity:
 - `meeting_list_tasks`
 - `meeting_update_task_status`
 
-### 2.8 Commands (5)
+### 2.8 Agent Discovery (1)
+
+- `agent_list_available`
+
+### 2.9 Commands (5)
 
 - `/meeting-status`
 - `/meeting-list`
@@ -90,7 +95,7 @@ Current plugin identity:
 
 ```text
 src/
-  index.ts                     # plugin entry (registers 32 tools + 5 commands)
+  index.ts                     # plugin entry (registers 34 tools + 5 commands)
   tools/                       # tool implementations
   commands/                    # slash commands
   modules/meeting/storage.ts   # persistence and index
@@ -206,9 +211,12 @@ MEETING_STORAGE_DIR=D:/tmp/meeting-data
 ## 8. Suggested Tool Flow
 
 ```text
+agent_list_available
+  -> user selects participants
 meeting_create
   -> agenda_add_item (repeat as needed)
   -> agenda_confirm (after user confirms/edits agenda)
+  -> meeting_start_readiness
   -> meeting_start
   -> speaking_request / speaking_grant / speaking_release
   -> recording_take_note

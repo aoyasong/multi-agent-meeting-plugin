@@ -1,10 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createMeetingCreateTool } from '../src/tools/meeting-create.js';
 import { createMeetingStartTool } from '../src/tools/meeting-start.js';
+import { createMeetingStartReadinessTool } from '../src/tools/meeting-start-readiness.js';
 import { createMeetingEndTool } from '../src/tools/meeting-end.js';
 import { createMeetingGetTool } from '../src/tools/meeting-get.js';
 import { createMeetingListTool } from '../src/tools/meeting-list.js';
 import { createAgendaAddItemTool, createAgendaConfirmTool } from '../src/tools/agenda-tools.js';
+import { createAgentListAvailableTool } from '../src/tools/agent-list-available.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -19,11 +21,13 @@ const TEST_STORAGE_DIR = path.join(os.tmpdir(), 'meeting-test-' + Date.now());
 describe('Meeting Tools', () => {
   const createTool = createMeetingCreateTool(mockApi);
   const startTool = createMeetingStartTool(mockApi);
+  const readinessTool = createMeetingStartReadinessTool(mockApi);
   const endTool = createMeetingEndTool(mockApi);
   const getTool = createMeetingGetTool(mockApi);
   const listTool = createMeetingListTool(mockApi);
   const agendaAddTool = createAgendaAddItemTool(mockApi);
   const agendaConfirmTool = createAgendaConfirmTool(mockApi);
+  const agentListTool = createAgentListAvailableTool(mockApi);
 
   beforeEach(async () => {
     // 设置测试存储目录
@@ -48,6 +52,7 @@ describe('Meeting Tools', () => {
         expected_duration: 30,
         participants: [
           { agent_id: 'agent-1', role: 'participant' as const },
+          { agent_id: 'agent-2', role: 'participant' as const },
         ],
       };
 
@@ -104,7 +109,10 @@ describe('Meeting Tools', () => {
         purpose: '测试状态校验',
         type: 'brainstorm',
         expected_duration: 30,
-        participants: [{ agent_id: 'agent-1', role: 'participant' as const }],
+        participants: [
+          { agent_id: 'agent-1', role: 'participant' as const },
+          { agent_id: 'agent-2', role: 'participant' as const },
+        ],
       });
       const createData = JSON.parse(createResult.content[0]?.text ?? '{}');
       const meetingId = createData.meeting_id;
@@ -135,7 +143,10 @@ describe('Meeting Tools', () => {
         purpose: '测试查询功能',
         type: 'requirement_review',
         expected_duration: 45,
-        participants: [{ agent_id: 'pm-agent', role: 'host' as const }],
+        participants: [
+          { agent_id: 'pm-agent', role: 'host' as const },
+          { agent_id: 'dev-agent', role: 'participant' as const },
+        ],
       });
       const createData = JSON.parse(createResult.content[0]?.text ?? '{}');
       const meetingId = createData.meeting_id;
@@ -157,7 +168,10 @@ describe('Meeting Tools', () => {
           purpose: '测试列表',
           type: 'brainstorm',
           expected_duration: 30,
-          participants: [{ agent_id: 'agent-1', role: 'participant' as const }],
+          participants: [
+            { agent_id: 'agent-1', role: 'participant' as const },
+            { agent_id: 'agent-2', role: 'participant' as const },
+          ],
         });
       }
 
@@ -167,6 +181,49 @@ describe('Meeting Tools', () => {
       
       expect(listData.meetings.length).toBeGreaterThanOrEqual(3);
       expect(listData.pagination.total).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  describe('readiness and agent discovery', () => {
+    it('should return readiness blockers before agenda confirmation', async () => {
+      const createResult = await createTool.execute('test', {
+        theme: '就绪性检查',
+        purpose: '测试启动前校验',
+        type: 'project_kickoff',
+        expected_duration: 30,
+        participants: [
+          { agent_id: 'agent-a', role: 'host' as const },
+          { agent_id: 'agent-b', role: 'participant' as const },
+        ],
+      });
+      const createData = JSON.parse(createResult.content[0]?.text ?? '{}');
+      const meetingId = createData.meeting_id;
+
+      const readinessResult = await readinessTool.execute('test', { meeting_id: meetingId });
+      const readinessData = JSON.parse(readinessResult.content[0]?.text ?? '{}');
+
+      expect(readinessData.can_start).toBe(false);
+      expect(Array.isArray(readinessData.blockers)).toBe(true);
+      expect(readinessData.blockers.length).toBeGreaterThan(0);
+    });
+
+    it('should return available agents from history', async () => {
+      await createTool.execute('test', {
+        theme: 'Agent来源测试',
+        purpose: '验证agent发现',
+        type: 'brainstorm',
+        expected_duration: 20,
+        participants: [
+          { agent_id: 'discovery-host', role: 'host' as const },
+          { agent_id: 'discovery-participant', role: 'participant' as const },
+        ],
+      });
+
+      const result = await agentListTool.execute('test', { include_history: true, limit: 10 });
+      const data = JSON.parse(result.content[0]?.text ?? '{}');
+      const ids = (data.agents ?? []).map((item: { agent_id: string }) => item.agent_id);
+      expect(ids).toContain('discovery-host');
+      expect(ids).toContain('discovery-participant');
     });
   });
 });
