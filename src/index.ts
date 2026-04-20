@@ -6,6 +6,7 @@
 
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
+import { hasDatabaseConfig, setStorageConfig } from "./modules/meeting/storage.js";
 
 // 会议生命周期工具
 import { createMeetingCreateTool } from "./tools/meeting-create.js";
@@ -80,11 +81,14 @@ export default definePluginEntry({
 
   register(api: OpenClawPluginApi) {
     const runtimeConfig = (api.config as Record<string, unknown>) ?? {};
-    if (typeof runtimeConfig.pgDsn === "string" && runtimeConfig.pgDsn.length > 0) {
-      process.env.PG_DSN = runtimeConfig.pgDsn;
-    }
-    if (typeof runtimeConfig.storageDir === "string" && runtimeConfig.storageDir.length > 0) {
-      process.env.MEETING_STORAGE_DIR = runtimeConfig.storageDir;
+    const pgDsn = typeof runtimeConfig.pgDsn === "string" ? runtimeConfig.pgDsn : undefined;
+    const storageDir = typeof runtimeConfig.storageDir === "string" ? runtimeConfig.storageDir : undefined;
+    setStorageConfig({ pgDsn, storageDir });
+
+    if (!hasDatabaseConfig()) {
+      throw new Error(
+        "PostgreSQL configuration missing: set plugin config `pgDsn` (recommended) or environment variable `PG_DSN`."
+      );
     }
 
     // 当前插件工具返回结构沿用既有实现；通过窄封装兼容 SDK 注册签名。
