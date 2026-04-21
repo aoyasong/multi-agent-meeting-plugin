@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/multi-agent-meeting-plugin",
+  "name": "@openclaw/multi-agent-meeting",
   "version": "1.0.0",
   "private": true,
   "description": "OpenClaw多Agent协同会议系统Plugin",
