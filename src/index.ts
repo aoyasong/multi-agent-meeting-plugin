@@ -74,8 +74,8 @@ import { createMeetingCommands } from "./commands/meeting-commands.js";
  * Plugin入口定义
  */
 export default definePluginEntry({
-  id: "multi-agent-meeting-plugin",
-  name: "Multi-Agent Meeting Plugin",
+  id: "multi-agent-meeting",
+  name: "Multi Agent Meeting",
   description:
     "多Agent协同会议系统，支持头脑风暴、需求评审、技术评审、项目启动等场景",
 
