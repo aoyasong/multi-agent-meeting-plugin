@@ -83,17 +83,66 @@ export default definePluginEntry({
     const resolveRuntimeConfig = (): Record<string, unknown> => {
       const apiAny = api as unknown as {
         config?: unknown;
-        getConfig?: () => unknown;
+        getConfig?: (...args: unknown[]) => unknown;
       };
-      const fromGetConfig = typeof apiAny.getConfig === "function" ? apiAny.getConfig() : undefined;
-      const fromConfig = apiAny.config;
-      const merged = {
-        ...(fromConfig && typeof fromConfig === "object" ? (fromConfig as Record<string, unknown>) : {}),
-        ...(fromGetConfig && typeof fromGetConfig === "object"
-          ? (fromGetConfig as Record<string, unknown>)
-          : {}),
+
+      const isObject = (v: unknown): v is Record<string, unknown> =>
+        Boolean(v) && typeof v === "object" && !Array.isArray(v);
+
+      const pickDirect = (obj: Record<string, unknown>): Record<string, unknown> | undefined => {
+        if (typeof obj.pgDsn === "string" || typeof obj.storageDir === "string") {
+          return obj;
+        }
+        return undefined;
       };
-      return merged;
+
+      const pickNested = (obj: Record<string, unknown>): Record<string, unknown> | undefined => {
+        const config = obj.config;
+        if (isObject(config) && (typeof config.pgDsn === "string" || typeof config.storageDir === "string")) {
+          return config;
+        }
+
+        const entries = obj.entries;
+        if (isObject(entries)) {
+          const pluginEntry = entries["multi-agent-meeting-plugin"];
+          if (isObject(pluginEntry) && isObject(pluginEntry.config)) {
+            const cfg = pluginEntry.config;
+            if (typeof cfg.pgDsn === "string" || typeof cfg.storageDir === "string") {
+              return cfg;
+            }
+          }
+        }
+
+        const plugins = obj.plugins;
+        if (isObject(plugins) && isObject(plugins.entries)) {
+          const pluginEntry = plugins.entries["multi-agent-meeting-plugin"];
+          if (isObject(pluginEntry) && isObject(pluginEntry.config)) {
+            const cfg = pluginEntry.config;
+            if (typeof cfg.pgDsn === "string" || typeof cfg.storageDir === "string") {
+              return cfg;
+            }
+          }
+        }
+        return undefined;
+      };
+
+      const candidates: unknown[] = [];
+      if (typeof apiAny.getConfig === "function") {
+        candidates.push(apiAny.getConfig());
+        candidates.push(apiAny.getConfig("multi-agent-meeting-plugin"));
+      }
+      candidates.push(apiAny.config);
+
+      for (const candidate of candidates) {
+        if (!isObject(candidate)) {
+          continue;
+        }
+        const picked = pickDirect(candidate) ?? pickNested(candidate);
+        if (picked) {
+          return picked;
+        }
+      }
+      return {};
     };
 
     const runtimeConfig = resolveRuntimeConfig();
