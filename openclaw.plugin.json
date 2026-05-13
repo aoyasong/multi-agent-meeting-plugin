@@ -61,7 +61,7 @@
         "type": "string",
         "description": "PostgreSQL 连接串，例如 postgres://user:pass@host:5432/db"
       },
-      "output_base_dir": {
+      "outputBaseDir": {
         "type": "string",
         "description": "导出文件目录（summary/action items 等），默认为 ~/.openclaw/meetings"
       },
